@@ -1205,7 +1205,7 @@ function showAnswer(){
   else if(s.typed==='wrong')fb='<div class="fb wrong">Not quite</div>';
   $('#ans').innerHTML=`${fb}<span class="lbl">${S.set.dir==='nl'?'Español':'Nederlands'}</span><div class="back">${esc(back)}</div>${sayBtn(c.es)}`;
   const sug=s.typed==='ok'?'good':s.typed==='wrong'?'again':'';
-  $('#act').innerHTML=`<div class="grades"><button class="btn ${sug==='again'?'bad':''}" data-act="grade" data-g="again">Again <span class="kbd">1</span></button><button class="btn" data-act="grade" data-g="hard">Hard <span class="kbd">2</span></button><button class="btn ${sug==='good'?'good':''}" data-act="grade" data-g="good">${s.typed==='wrong'?'I was right':'Good'} <span class="kbd">3</span></button></div>`;
+  $('#act').innerHTML=`<div class="grades"><button class="btn ${sug==='again'?'bad':''}" data-act="grade" data-g="again">Don’t know <span class="kbd">1</span></button><button class="btn" data-act="grade" data-g="hard">Difficult <span class="kbd">2</span></button><button class="btn ${sug==='good'?'good':''}" data-act="grade" data-g="good">I know this <span class="kbd">3</span></button></div>`;
   if(S.set.dir==='nl')say(c.es);
 }
 function gradeCard(g){
