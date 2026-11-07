@@ -31,6 +31,9 @@
 .more>*+*{margin-top:12px}
 .ebar{display:block;width:44px;height:4px;border-radius:9px;background:var(--sunk);overflow:hidden;margin-top:4px}
 .ebar i{display:block;height:100%}
+.quests{display:flex;flex-direction:column;gap:6px}
+.quest{display:flex;gap:10px;align-items:center;padding:4px 0;font-weight:600}
+.quest.done{color:var(--good)}
 </style>
 <script>window.__PWA__=1</script>
 </head><body>
@@ -1101,6 +1104,8 @@ function renderToday(){
   $('#p-today').innerHTML=`
   ${before}${after}
   ${cont}
+  ${repairHTML()}
+  ${questsHTML()}
   <h3 class="section-h">Your skills</h3>
   ${skillsRow()}
   <h3 class="section-h">Your route</h3>
@@ -1732,26 +1737,51 @@ const FLAME='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><pa
 const DAY_MS=864e5;
 function strength(){if(!S.lastPractice)return 0;return Math.max(0,Math.min(100,100-(Date.now()-S.lastPractice)/DAY_MS*100))}
 function streak(){return strength()>0?(S.chain||0):0}
+const QUESTS=[['Earn 80 XP today',()=>xpToday()>=80],['Reach the daily goal (150 XP)',()=>xpToday()>=GOAL],['Do a practice test or timed exam',()=>S.tests.some(x=>x.d===todayISO())]];
 function touchPractice(){
+  const now=Date.now();
+  if(S.lostChain&&S.repairUntil>now){
+    S.repairDone=(S.repairDone||0)+1;
+    if(S.repairDone>=3){S.chain=S.lostChain;S.lostChain=0;S.repairUntil=0;S.repairDone=0;toast('Streak won back',`${S.chain}-day streak restored!`,'🔥');sfx('goal')}
+    else toast('Streak repair',`${S.repairDone}/3 practice actions`,'↺');
+    S.lastPractice=now;checkQuests();return;
+  }
   const alive=strength()>0&&S.chain;
   if(!alive)S.chain=1;
   else if(!S.lastPractice||iso(new Date(S.lastPractice))!==todayISO()){
     S.chain=(S.chain||0)+1;
     if(S.chain%7===0){S.freezes=Math.min(3,(S.freezes??2)+1);toast('Streak freeze earned',`${S.freezes} in your bank. A freeze saves your streak once.`,'❄')}
   }
-  S.lastPractice=Date.now();
+  S.lastPractice=now;checkQuests();
+}
+function checkQuests(){
+  const t=todayISO();
+  if(S.questDay===t)return;
+  if(QUESTS.every(q=>q[1]())){S.questDay=t;S.freezes=Math.min(3,(S.freezes??2)+1);save();toast('Daily quests done','+1 streak freeze ❄','★');sfx('goal')}
 }
 function checkDecay(){
+  if(S.repairUntil&&Date.now()>S.repairUntil){S.lostChain=0;S.repairUntil=0;S.repairDone=0;save()}
   if(!S.lastPractice||!S.chain||strength()>0)return;
   if((S.freezes??2)>0){S.freezes=(S.freezes??2)-1;S.lastPractice=Date.now()-12*3600e3;save();toast('Streak saved','A streak freeze was used. Practise within 12 hours.','❄');return}
-  S.chain=0;save();toast('Streak lost','Do one task to start a new one.','✗');
+  S.lostChain=S.chain;S.repairUntil=Date.now()+DAY_MS;S.repairDone=0;S.chain=0;save();
+  toast('Streak lost',`Win back your ${S.lostChain}-day streak: 3 practice actions in 24 h.`,'✗');
 }
 function energyText(){
+  if(S.lostChain&&S.repairUntil>Date.now())return 'Streak lost. Win it back in the card above.';
   if(!S.lastPractice)return 'Start a task to begin your streak.';
   const e=Math.round(strength()),f=S.freezes??2;
   if(e<=0)return 'Streak ends now. Do one task to keep it.';
   const h=Math.max(0,Math.ceil((S.lastPractice+DAY_MS-Date.now())/3600e3));
   return `Energy ${e}% · streak ends in ${h} h · ❄ ${f} freeze${f===1?'':'s'}`;
+}
+function repairHTML(){
+  if(!(S.lostChain&&S.repairUntil>Date.now()))return '';
+  const h=Math.max(0,Math.ceil((S.repairUntil-Date.now())/3600e3)),left=3-(S.repairDone||0);
+  return `<div class="card stack"><b>Win back your ${S.lostChain}-day streak</b><div class="bar"><i style="width:${(S.repairDone||0)/3*100}%"></i></div><p class="small muted">${left} practice action${left===1?'':'s'} left · ${h} h to go</p></div>`;
+}
+function questsHTML(){
+  const done=S.questDay===todayISO();
+  return `<div class="card quests"><h3>Daily quests</h3>${QUESTS.map(q=>{const ok=q[1]();return `<div class="quest${ok?' done':''}"><span>${ok?'✓':'○'}</span>${esc(q[0])}</div>`}).join('')}<p class="small muted">${done?'All done today. ❄ freeze earned.':'Finish all 3 for a streak freeze ❄.'}</p></div>`;
 }
 setInterval(()=>{checkDecay();if(typeof renderHUD==='function')renderHUD()},60000);
 function renderHUD(){
