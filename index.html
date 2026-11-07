@@ -7,7 +7,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Español">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}.lvlrow{display:grid;grid-template-columns:96px 1fr 40px;gap:10px;align-items:center}
+.levels h3{margin:2px 0 0}
+</style>
 <script>window.__PWA__=1</script>
 </head><body>
 <title>Plan de Español 1.1</title>
@@ -1055,6 +1057,7 @@ function renderToday(){
   const after=t>EXAM?`<div class="callout blue">Evaluación 1 is done. Keep reviewing your flashcards; the plan for Unit 3–4 can be added later.</div>`:'';
   $('#p-today').innerHTML=`
   ${before}${after}
+  ${levelsCard()}
   <div class="today-head">
     <div><p class="muted small">${d===t?'Hoy es':'Plan for'}</p><p class="date">${fmtES(d)}</p></div>
     <div class="row">${tag}<span class="chip">${n}/${m} done</span></div>
@@ -1347,11 +1350,12 @@ document.addEventListener('keydown',e=>{
 /* ============ TEST ============ */
 let TEST=null;
 function renderTestHome(){
-  TEST=null;
+  TEST=null;clearInterval(TIMER);
   const hist=S.tests.slice(-8);
   $('#p-test').innerHTML=`
   <div class="spread"><div><h2>Practice test</h2><p class="muted small">Built like the “Herhalingsoefeningen” for Evaluación 1 (unidad 1 + 2). A new mix every time.</p></div>
-  <button class="btn primary" data-act="newtest">Start a new test</button></div>
+  <div class="row"><button class="btn primary" data-act="newtest">Practice test</button><button class="btn" data-act="newtest" data-timed="1">⏱ Timed exam · 30 min</button></div></div>
+  ${levelsCard()}
   <div class="card stack"><h3>What’s in it</h3>
   <div class="tablewrap"><table class="list"><tr><th>Part</th><th>Task</th><th>Points</th></tr>
   <tr><td>A</td><td>Present tense in sentences (regular + ser / estar / tener / hacer)</td><td class="mono">10</td></tr>
@@ -1360,20 +1364,20 @@ function renderTestHome(){
   <tr><td>D</td><td>Ask a question with a question word</td><td class="mono">5</td></tr>
   <tr><td>E</td><td>Write the question that goes with the answer</td><td class="mono">5</td></tr></table></div>
   <p class="small muted">Accent mistakes count as half a point, so watch your tildes. For D and E there can be more than one good question; if yours is right but marked wrong, you can count it.</p></div>
-  ${hist.length?`<div class="card stack"><h3>Your scores</h3><div class="tablewrap"><table class="list"><tr><th>Date</th><th>Score</th><th></th></tr>${hist.slice().reverse().map(h=>`<tr><td>${fmtShort(h.d)}</td><td class="mono">${Math.round(h.sc*10)/10} / ${h.max}</td><td style="width:50%"><div class="bar ${h.sc/h.max>=.7?'good':''}"><i style="width:${h.sc/h.max*100}%"></i></div></td></tr>`).join('')}</table></div></div>`:''}`;
+  ${hist.length?`<div class="card stack"><h3>Your scores</h3><div class="tablewrap"><table class="list"><tr><th>Date</th><th>Score</th><th></th></tr>${hist.slice().reverse().map(h=>`<tr><td>${fmtShort(h.d)}${h.timed?' ⏱':''}</td><td class="mono">${Math.round(h.sc*10)/10} / ${h.max}</td><td style="width:50%"><div class="bar ${h.sc/h.max>=.7?'good':''}"><i style="width:${h.sc/h.max*100}%"></i></div></td></tr>`).join('')}</table></div></div>`:''}`;
 }
-function newTest(){
+function newTest(timed){
   const A=shuffle(SENT).slice(0,10).map(([l,v,s])=>({k:'A',pre:`(${l} ${v.toUpperCase()})`,s,acc:[conj(v,persIdx(l))]}));
   const B=shuffle(PLS).slice(0,5).map(([s,a])=>({k:'B',s,acc:a.split('|')}));
   const C=shuffle(NEG).slice(0,5).map(([s,a])=>({k:'C',s,acc:[a]}));
   const D=shuffle(QW).slice(0,5).map(([s,h,a])=>({k:'D',s,h,acc:[a],len:true}));
   const E=shuffle(QA).slice(0,5).map(([s,a])=>({k:'E',s,acc:a,len:true}));
-  TEST={items:[...A,...B,...C,...D,...E],checked:false};
+  TEST={items:[...A,...B,...C,...D,...E],checked:false,timed:!!timed,end:timed?Date.now()+30*60000:0};
   const sec=(k,title,body)=>`<div class="card stack"><h3>${k}. ${title}</h3><div>${body}</div></div>`;
   const it=TEST.items;
   const field=(i,ph)=>`<input type="text" id="t${i}" autocomplete="off" autocapitalize="off" spellcheck="false" ${ph?`placeholder="${ph}"`:''}>`;
   const row=(i,inner)=>`<div class="tq" id="q${i}">${inner}<div class="res" id="r${i}"></div></div>`;
-  let html=`<div class="spread"><button class="btn sm ghost" data-act="home">← Back</button><span class="muted small">Write accents: á é í ó ú ñ ¿ ¡ (on a phone: hold the letter)</span></div><h2>Practice test</h2>`;
+  let html=`<div class="spread"><button class="btn sm ghost" data-act="home">← Back</button><span class="muted small">Write accents: á é í ó ú ñ ¿ ¡ (on a phone: hold the letter)</span></div><h2>${TEST.timed?'Timed exam':'Practice test'}</h2>${TEST.timed?'<div class="card spread" id="ttimer" style="position:sticky;top:0;z-index:5"><b>Time left</b><span class="mono" id="tclock">30:00</span></div>':''}`;
   html+=sec('A','Fill in the present tense (/10)',it.map((x,i)=>x.k!=='A'?'':row(i,`<div class="s">${esc(x.pre)} ${esc(x.s).replace('___',`<input type="text" class="inline" id="t${i}" autocomplete="off" autocapitalize="off" spellcheck="false">`)}</div>`)).join(''));
   html+=sec('B','Put in the plural (/5)',it.map((x,i)=>x.k!=='B'?'':row(i,`<div class="s">${esc(x.s)}</div>${field(i)}`)).join(''));
   html+=sec('C','Make it negative (/5)',it.map((x,i)=>x.k!=='C'?'':row(i,`<div class="s">${esc(x.s)}</div>${field(i)}`)).join(''));
@@ -1381,17 +1385,26 @@ function newTest(){
   html+=sec('E','Write the question for the answer (/5)',it.map((x,i)=>x.k!=='E'?'':row(i,`<div class="s">${esc(x.s)}</div>${field(i,'¿…?')}`)).join(''));
   html+=`<div class="card spread" id="tfoot"><button class="btn primary" data-act="checktest">Check my test</button><span class="muted small">Answers are checked all at once at the end.</span></div>`;
   $('#p-test').innerHTML=html;
+  if(TEST.timed)startClock();
 }
+let TIMER=null;
+function startClock(){
+  clearInterval(TIMER);
+  const tick=()=>{const left=Math.max(0,Math.round((TEST.end-Date.now())/1000));const el=$('#tclock');if(el){el.textContent=pad(Math.floor(left/60))+':'+pad(left%60);el.style.color=left<300?'var(--bad)':''}if(left<=0&&TEST&&!TEST.checked){clearInterval(TIMER);toast('Time is up','Your exam was marked automatically.','⏱');checkTest()}};
+  tick();TIMER=setInterval(tick,1000);
+}
+function partsLine(){const p={};TEST.items.forEach(x=>{p[x.k]=(p[x.k]||0)+(x.r==='ok'?1:x.r==='accent'?.5:0)});return `<p class="small mono">${['A','B','C','D','E'].map(k=>`${k} ${p[k]||0}/${k==='A'?10:5}`).join(' · ')}</p>`}
 function scoreTest(){return TEST.items.reduce((s,x)=>s+(x.r==='ok'?1:x.r==='accent'?.5:0),0)}
 function checkTest(){
-  if(TEST.checked)return;TEST.checked=true;
+  if(TEST.checked)return;TEST.checked=true;clearInterval(TIMER);
   TEST.items.forEach((x,i)=>{
     const v=$('#t'+i).value;x.r=grade(v,x.acc);$('#t'+i).readOnly=true;
     paintTQ(i);
   });
   const sc=scoreTest();
-  S.tests.push({d:todayISO(),sc,max:30});TEST.hi=S.tests.length-1;save();
-  addXP(Math.round(sc*5)+(sc>=24?100:0),'Practice test');
+  S.tests.push({d:todayISO(),sc,max:30,timed:!!TEST.timed});TEST.hi=S.tests.length-1;save();
+  const base=Math.round(sc*5)+(sc>=24?100:0);
+  addXP(TEST.timed?base*2:base,TEST.timed?'Timed exam ×2':'Practice test');
   autoTick('test','');
   footTest();
 }
@@ -1403,13 +1416,13 @@ function paintTQ(i){
 }
 function footTest(){
   const sc=scoreTest();
-  $('#tfoot').innerHTML=`<div><span class="score mono">${Math.round(sc*10)/10}</span> <span class="muted">/ 30</span><p class="small muted">${sc>=24?'Great score. You’re on track.':sc>=18?'A pass. Look at the red answers and drill those topics.':'Not there yet. Drill the topics with red answers and try again in two days.'}</p></div><div class="row"><button class="btn primary" data-act="newtest">New test</button><button class="btn" data-act="home">Scores</button></div>`;
+  $('#tfoot').innerHTML=`<div><span class="score mono">${Math.round(sc*10)/10}</span> <span class="muted">/ 30</span>${partsLine()}<p class="small muted">${sc>=24?'Great score. You’re on track.':sc>=18?'A pass. Look at the red answers and drill those topics.':'Not there yet. Drill the topics with red answers and try again in two days.'}</p></div><div class="row"><button class="btn primary" data-act="newtest">New test</button><button class="btn" data-act="home">Scores</button></div>`;
   $('#tfoot').scrollIntoView({behavior:'smooth',block:'center'});
 }
 $('#p-test').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act;
-  if(a==='newtest'){newTest();window.scrollTo({top:0})}
+  if(a==='newtest'){newTest(b.dataset.timed==='1');window.scrollTo({top:0})}
   else if(a==='checktest')checkTest();
   else if(a==='home')renderTestHome();
   else if(a==='tover'){const i=+b.dataset.i;TEST.items[i].r='ok';paintTQ(i);const sc=scoreTest();if(TEST.hi!=null){S.tests[TEST.hi].sc=sc;save()}addXP(5);footTest()}
@@ -1577,6 +1590,21 @@ const levelOf=xp=>{let i=0;STOPS.forEach((s,k)=>{if(xp>=s[2])i=k});return i};
 const xpToday=()=>S.xpDay[todayISO()]||0;
 const known=()=>Object.values(S.cards).filter(c=>c.b>=3).length;
 function streak(){let n=0,d=todayISO();if((S.xpDay[d]||0)<GOAL)d=addDays(d,-1);while((S.xpDay[d]||0)>=GOAL){n++;d=addDays(d,-1)}return n}
+const SKILLS=[
+ ['vocab','Vocabulary',()=>{const n=Object.keys(CARDS).length;return n?known()/n*100:0}],
+ ['gram','Grammar',()=>TOPICS.reduce((s,t)=>s+(topicScore(t.id)||0),0)/TOPICS.length*100],
+ ['oral','Speaking',()=>ORAL.filter(o=>S.oralMark[o[0]]==='ok').length/ORAL.length*100],
+ ['read','Reading',()=>READS.filter(r=>(S.reads[r[0]]||0)>=3).length/READS.length*100],
+ ['write','Writing',()=>S.wroteAll?100:Math.min(60,wc(S.write||'')*3)],
+ ['test','Exam',()=>{const last=S.tests.slice(-3);return last.length?Math.max(...last.map(t=>t.sc/t.max))*100:0}]
+];
+const LVL_NAMES=['Principiante','Iniciación','Elemental','Elemental+','Básico','Básico+','Intermedio','Intermedio+','Avanzado','Avanzado+','Experto'];
+const skillRows=()=>SKILLS.map(([id,name,f])=>{const pct=Math.max(0,Math.min(100,f()||0));return {id,name,pct,lvl:Math.min(10,Math.floor(pct/10))}});
+const overallLevel=()=>{const r=skillRows();return Math.round(r.reduce((s,x)=>s+x.lvl,0)/r.length)};
+function levelsCard(){
+  const r=skillRows();const ov=overallLevel();const weak=[...r].sort((a,b)=>a.pct-b.pct)[0];
+  return `<div class="card stack levels"><div class="spread"><div><span class="muted small">Your level</span><h3>Nivel ${ov} / 10 · ${LVL_NAMES[ov]}</h3></div><span class="chip">Focus: ${esc(weak.name)}</span></div>${r.map(x=>`<div class="lvlrow"><span>${esc(x.name)}</span><div class="bar ${x.pct>=70?'good':''}"><i style="width:${x.pct}%"></i></div><span class="mono small">${x.lvl}/10</span></div>`).join('')}<p class="small muted">Levels rise as you learn: flashcards known, grammar scores, speaking marks, read-alouds, the writing checklist and your best recent exam.</p></div>`;
+}
 const ACH=[
  ['primer','Primer paso','Earn your first XP','1',()=>S.xp>0],
  ['pal50','50 palabras','Start 50 flashcards','50',()=>Object.keys(S.cards).length>=50],
@@ -1599,7 +1627,9 @@ const ACH=[
  ['darien','Tapón del Darién','Get from Panamá to Colombia','CO',()=>levelOf(S.xp)>=11],
  ['ushuaia','Fin del mundo','Reach Ushuaia','AR',()=>levelOf(S.xp)>=STOPS.length-1],
  ['buho','Búho','Study after 22:00','22',()=>!!S.flags.owl],
- ['madrugador','Madrugador','Study before 8:00','8',()=>!!S.flags.early]
+ ['madrugador','Madrugador','Study before 8:00','8',()=>!!S.flags.early],
+ ['examen','Timed exam','Finish a timed exam','⏱',()=>S.tests.some(t=>t.timed)],
+ ['nivel5','Nivel medio','Reach overall level 5 of 10','5',()=>overallLevel()>=5]
 ].map(([id,t,d,ic,test])=>({id,t,d,ic,test}));
 
 let lastPt={x:innerWidth/2,y:innerHeight/3};
