@@ -9,6 +9,28 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}.lvlrow{display:grid;grid-template-columns:96px 1fr 40px;gap:10px;align-items:center}
 .levels h3{margin:2px 0 0}
+.cont{display:flex;flex-direction:column;gap:12px;align-items:stretch}
+.cont h2{margin:0}
+.cont .big{width:100%;justify-content:center;padding:14px;font-size:1.05rem}
+.section-h{margin:10px 0 -4px;font-size:1rem}
+.skills{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (min-width:700px){.skills{grid-template-columns:repeat(6,1fr)}}
+.skill{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:14px;background:var(--surface);border:1px solid var(--line);font-weight:700;min-width:0}
+.lvlring{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-size:1.3rem;font-weight:800;border:4px solid var(--cobalt)}
+.sname{font-size:.85rem}
+.path{display:flex;flex-direction:column;gap:10px}
+.unit{display:flex;align-items:center;gap:12px;text-align:left;padding:12px;border-radius:14px;background:var(--surface);border:1px solid var(--line);width:100%}
+.unit .node{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--cobalt);color:#fff;font-weight:800;flex:none}
+.unit.done .node{background:var(--good)}
+.unit.cur{border-color:var(--cobalt);box-shadow:inset 0 0 0 1px var(--cobalt)}
+.unit .uinfo{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.unit small{opacity:.75}
+.more{border:1px solid var(--line);border-radius:14px;padding:12px 16px;background:var(--surface)}
+.more summary{cursor:pointer;font-weight:700;padding:4px 0}
+.more[open]>summary{margin-bottom:12px}
+.more>*+*{margin-top:12px}
+.ebar{display:block;width:44px;height:4px;border-radius:9px;background:var(--sunk);overflow:hidden;margin-top:4px}
+.ebar i{display:block;height:100%}
 </style>
 <script>window.__PWA__=1</script>
 </head><body>
@@ -1042,6 +1064,19 @@ function openTask(t){
 
 /* ============ TODAY ============ */
 function dueCount(deck){const t=todayISO();const ids=deck==='all'?Object.keys(CARDS):DECKS.find(d=>d.id===deck).ids;return ids.filter(id=>S.cards[id]&&S.cards[id].d<=t).length}
+function skillsRow(){
+  const dest={vocab:'vocab',gram:'grammar',oral:'speak',read:'speak',write:'write',test:'test'};
+  return `<div class="skills">${skillRows().map(x=>{const col=x.lvl>=7?'var(--good)':x.lvl>=4?'var(--cobalt)':'var(--saffron)';return `<button class="skill" data-goto="${dest[x.id]}"><span class="lvlring" style="border-color:${col}">${x.lvl}</span><span class="sname">${esc(x.name)}</span></button>`}).join('')}</div>`;
+}
+function pathHTML(d){
+  return `<div class="path">${PLAN.map((w,i)=>{
+    const tot=w.days.reduce((s,x)=>s+x[3].length,0);
+    const dn=w.days.reduce((s,x)=>s+x[3].filter((_,k)=>S.done[x[0]+'#'+k]).length,0);
+    const p=tot?Math.round(dn/tot*100):0;
+    const cur=w.days.some(x=>x[0]===d);
+    return `<button class="unit${p===100?' done':''}${cur?' cur':''}" data-goto="plan"><span class="node">${p===100?'✓':i+1}</span><span class="uinfo"><b>${esc(w.w)}</b><small>${esc(w.sub)}</small><span class="bar"><i style="width:${p}%"></i></span></span><span class="mono small">${p}%</span></button>`;
+  }).join('')}</div>`;
+}
 function renderToday(){
   const t=todayISO();
   let d=t;if(t<START)d=START;if(t>EXAM)d=EXAM;
@@ -1050,40 +1085,47 @@ function renderToday(){
   const learned=Object.values(S.cards).filter(c=>c.b>=3).length;
   const seen=Object.keys(S.cards).length;
   const lastTest=S.tests[S.tests.length-1];
-  // strip: the next 7 plan days
   const strip=[...Array(7)].map((_,i)=>{const x=addDays(d,i);const [a,b]=dayProg(x);const cls=b&&a===b?'full':a?'part':'';return `<div class="wd${x===t?' now':''}"><span class="muted">${DIAS3[parseISO(x).getDay()]}</span><b>${parseISO(x).getDate()}</b><span class="dot ${cls}"></span></div>`}).join('');
   const tag=day&&day.tag?`<span class="chip ${day.tag}">${{class:'Class tonight',exam:'Exam day',test:'Practice test',free:'No class'}[day.tag]}</span>`:'';
   const before=t<START?`<div class="callout blue">The plan starts on ${fmtES(START)}. Here is day 1.</div>`:'';
   const after=t>EXAM?`<div class="callout blue">Evaluación 1 is done. Keep reviewing your flashcards; the plan for Unit 3–4 can be added later.</div>`:'';
+  const next=day?day.tasks.find(x=>!S.done[x.id]):null;
+  const cont=`<div class="card cont">
+    <div class="spread"><span class="muted small">${d===t?'Hoy':esc(fmtES(d))} · ${n}/${m} done</span>${tag}</div>
+    <h2>${esc(day?day.title:'')}</h2>
+    <div class="bar"><i style="width:${m?n/m*100:0}%"></i></div>
+    <p class="small muted">${energyText()}</p>
+    ${next?`<p class="small muted">Next: ${esc(next.text)}</p>${next.kind!=='book'?`<button class="btn primary big" data-open="${next.id}">Continue</button>`:`<button class="btn primary big" data-toggle="${next.id}">Mark as done</button>`}`:`<p>✓ Day complete. Nice work.</p>`}
+    <button class="btn sm ghost" data-goto="plan">All tasks for today</button>
+  </div>`;
   $('#p-today').innerHTML=`
   ${before}${after}
-  ${levelsCard()}
-  <div class="today-head">
-    <div><p class="muted small">${d===t?'Hoy es':'Plan for'}</p><p class="date">${fmtES(d)}</p></div>
-    <div class="row">${tag}<span class="chip">${n}/${m} done</span></div>
-  </div>
-  <p class="muted small" style="margin-bottom:-12px">Next 7 days</p><div class="week" aria-label="Next 7 days">${strip}</div>
-  <div class="card stack">
-    <div class="spread"><h2>${esc(day?day.title:'')}</h2><span class="muted small">${day?day.tasks.reduce((s,x)=>s+(x.min||0),0):0} min</span></div>
-    <div class="tasks">${day?day.tasks.map(taskHTML).join(''):''}</div>
-  </div>
-  <div class="stats">
-    <div class="stat"><b class="mono">${dueCount('all')}</b><span>flashcards due today</span></div>
-    <div class="stat"><b class="mono">${learned}<span class="muted" style="font-size:1rem"> / ${Object.keys(CARDS).length}</span></b><span>words you know well (${seen} started)</span></div>
-    <div class="stat"><b class="mono">${lastTest?Math.round(lastTest.sc*10)/10+'/'+lastTest.max:'–'}</b><span>last practice test</span></div>
-    <div class="stat"><b class="mono">${streak()}</b><span>day streak (${GOAL} XP a day)</span></div>
-  </div>
-  ${bossHTML()}
-  <div class="card stack">
-    <h3>What’s on Evaluación 1 (lun 23/11)</h3>
-    <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px">
-      <li><b>Vocabulary</b> Unit 1 + 2 (TB p.196–210). Not tested as a list, but you need it for everything else.</li>
-      <li><b>Grammar</b>: present tense regular + ser, estar, tener, hacer · articles · negation · pronouns · nouns + plural · question words · para + infinitive.</li>
-      <li><b>Writing</b>: an email to Eduardo introducing yourself (min. 30 words), written in your own words.</li>
-      <li><b>Speaking</b>: read a text aloud (6 possible texts) + answer questions about yourself.</li>
-    </ul>
-    <p class="muted small">Source: “Te kennen leerstof + vragen mondeling” on ELO. The date of Test sin estrés 2 isn’t on your course page yet. 26/10 is a guess, so check it in class.</p>
-  </div>`;
+  ${cont}
+  <h3 class="section-h">Your skills</h3>
+  ${skillsRow()}
+  <h3 class="section-h">Your route</h3>
+  ${pathHTML(d)}
+  <details class="more">
+    <summary>More: this week, stats, boss, exam info</summary>
+    <p class="muted small" style="margin:0">Next 7 days</p><div class="week" aria-label="Next 7 days">${strip}</div>
+    <div class="stats">
+      <div class="stat"><b class="mono">${dueCount('all')}</b><span>flashcards due today</span></div>
+      <div class="stat"><b class="mono">${learned}<span class="muted" style="font-size:1rem"> / ${Object.keys(CARDS).length}</span></b><span>words you know well (${seen} started)</span></div>
+      <div class="stat"><b class="mono">${lastTest?Math.round(lastTest.sc*10)/10+'/'+lastTest.max:'–'}</b><span>last practice test</span></div>
+      <div class="stat"><b class="mono">${streak()}</b><span>day streak (${GOAL} XP a day)</span></div>
+    </div>
+    ${bossHTML()}
+    <div class="card stack">
+      <h3>What’s on Evaluación 1 (lun 23/11)</h3>
+      <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px">
+        <li><b>Vocabulary</b> Unit 1 + 2 (TB p.196–210). Not tested as a list, but you need it for everything else.</li>
+        <li><b>Grammar</b>: present tense regular + ser, estar, tener, hacer · articles · negation · pronouns · nouns + plural · question words · para + infinitive.</li>
+        <li><b>Writing</b>: an email to Eduardo introducing yourself (min. 30 words), written in your own words.</li>
+        <li><b>Speaking</b>: read a text aloud (6 possible texts) + answer questions about yourself.</li>
+      </ul>
+      <p class="muted small">Source: “Te kennen leerstof + vragen mondeling” on ELO. The date of Test sin estrés 2 isn’t on your course page yet. 26/10 is a guess, so check it in class.</p>
+    </div>
+  </details>`;
 }
 
 /* ============ PLAN ============ */
@@ -1589,7 +1631,6 @@ const STOPS=[
 const levelOf=xp=>{let i=0;STOPS.forEach((s,k)=>{if(xp>=s[2])i=k});return i};
 const xpToday=()=>S.xpDay[todayISO()]||0;
 const known=()=>Object.values(S.cards).filter(c=>c.b>=3).length;
-function streak(){let n=0,d=todayISO();if((S.xpDay[d]||0)<GOAL)d=addDays(d,-1);while((S.xpDay[d]||0)>=GOAL){n++;d=addDays(d,-1)}return n}
 const SKILLS=[
  ['vocab','Vocabulary',()=>{const n=Object.keys(CARDS).length;return n?known()/n*100:0}],
  ['gram','Grammar',()=>TOPICS.reduce((s,t)=>s+(topicScore(t.id)||0),0)/TOPICS.length*100],
@@ -1668,7 +1709,7 @@ function confetti(n=120){
 function addXP(n,label){
   if(!n)return;
   const before=levelOf(S.xp),t=todayISO(),hadGoal=(S.xpDay[t]||0)>=GOAL;
-  S.xp=(S.xp||0)+n;S.xpDay[t]=(S.xpDay[t]||0)+n;
+  S.xp=(S.xp||0)+n;S.xpDay[t]=(S.xpDay[t]||0)+n;touchPractice();
   const h=new Date().getHours();if(h>=22)S.flags.owl=1;if(h<8)S.flags.early=1;
   save();floatXP(n,label);renderHUD();
   if(!hadGoal&&S.xpDay[t]>=GOAL){const s=streak();toast('Daily goal reached',`${s}-day streak. ¡Sigue así!`,String(s));sfx('goal')}
@@ -1688,12 +1729,24 @@ function checkAch(silent){
   if(changed)save();
 }
 const FLAME='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c1 3.5-1.5 5-1.5 7.5 0 1.4 1 2.5 2.3 2.5 1.6 0 2.4-1.3 2.2-3.2 2.4 1.8 4 4.5 4 7.2 0 4.2-3.4 7-7 7s-7-2.8-7-7c0-5.2 5-7.8 7-14z"/></svg>';
+const DAY_MS=864e5;
+function strength(){if(!S.lastPractice)return 0;return Math.max(0,Math.min(100,100-(Date.now()-S.lastPractice)/DAY_MS*100))}
+function streak(){return strength()>0?(S.chain||0):0}
+function touchPractice(){
+  const alive=strength()>0&&S.chain;
+  if(!alive)S.chain=1;
+  else if(!S.lastPractice||iso(new Date(S.lastPractice))!==todayISO())S.chain=(S.chain||0)+1;
+  S.lastPractice=Date.now();
+}
+function checkDecay(){if(S.lastPractice&&S.chain&&strength()<=0){S.chain=0;save();toast('Streak lost','Do one task to start a new one.','✗')}}
+function energyText(){const e=Math.round(strength());if(!S.lastPractice)return 'Start a task to begin your streak.';if(e<=0)return 'Streak lost. Do one task to start again.';if(e<50)return `Energy ${e}% · recharge now or your streak ends`;return `Energy ${e}% · streak safe`}
+setInterval(()=>{checkDecay();if(typeof renderHUD==='function')renderHUD()},60000);
 function renderHUD(){
   const i=levelOf(S.xp||0),cur=STOPS[i],nx=STOPS[i+1];
   const pct=nx?((S.xp-cur[2])/(nx[2]-cur[2]))*100:100;
-  const st=streak(),td=xpToday(),C=2*Math.PI*9,gp=Math.min(1,td/GOAL);
+  checkDecay();const st=streak(),en=Math.round(strength()),td=xpToday(),C=2*Math.PI*9,gp=Math.min(1,td/GOAL);
   $('#hud').innerHTML=`<button class="lvl" data-goto="ruta" aria-label="Open the route"><span class="medal">${i+1}</span><span class="info"><b>${esc(cur[0])} · ${esc(cur[1])}</b><span class="bar"><i style="width:${pct}%"></i></span><small class="mono">${S.xp||0} XP${nx?` · ${nx[2]-S.xp} to ${esc(nx[0])}`:' · ¡fin del mundo!'}</small></span></button>
-  <span class="pill flame${st?' on':''}" title="Days in a row you reached your daily goal">${FLAME}<b class="mono">${st}</b><span class="small">day${st===1?'':'s'}</span></span>
+  <span class="pill flame${st?' on':''}" title="Streak: practise within 24 hours to keep it">${FLAME}<b class="mono">${st}</b><span class="small">${st===1?'day':'days'}</span><span class="ebar" title="Energy ${en}%"><i style="width:${en}%;background:${en<50?'var(--saffron)':'var(--good)'}"></i></span></span>
   <span class="pill" title="Daily goal: ${GOAL} XP"><svg class="ring" viewBox="0 0 24 24" aria-hidden="true"><circle class="trk" cx="12" cy="12" r="9" fill="none" stroke-width="4"/><circle class="val" cx="12" cy="12" r="9" fill="none" stroke-width="4" stroke-linecap="round" stroke-dasharray="${C*gp} ${C}" transform="rotate(-90 12 12)"/></svg><b class="mono">${td}</b><span class="small muted">/ ${GOAL} XP</span></span>`;
 }
 document.addEventListener('click',e=>{const g=e.target.closest('[data-goto]');if(g)go(g.dataset.goto)});
