@@ -1,3 +1,4 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#1d4ed8">
 <meta name="description" content="Day-by-day Spanish 1.1 study plan with flashcards, grammar drills, practice tests and games.">
@@ -34,8 +35,26 @@
 .quests{display:flex;flex-direction:column;gap:6px}
 .quest{display:flex;gap:10px;align-items:center;padding:4px 0;font-weight:600}
 .quest.done{color:var(--good)}
+.wtable{width:100%;border-collapse:collapse;font-size:.95rem}
+.wtable th{text-align:left;font-size:.8rem;opacity:.7;padding:6px 4px}
+.wtable td{padding:10px 4px;border-top:1px solid var(--line);vertical-align:middle}
+.wtable tr[data-open]{cursor:pointer}
+.wtable tr[data-open]:active{background:var(--sunk)}
+.modeopt{display:flex;align-items:center;gap:10px;padding:10px 0;font-weight:600}
+.modeopt input{width:20px;height:20px}
+.grades{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.opt{display:block;width:100%;text-align:left;padding:12px;margin:4px 0;border-radius:12px;border:2px solid var(--line);background:var(--surface);font:inherit;font-weight:600}
+.opt.ok{border-color:var(--good)}
+.opt.bad{border-color:var(--bad)}
+.wrow{display:grid;grid-template-columns:12px 1fr 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.wes{font-weight:700}
+.wnl{opacity:.8;font-size:.95rem}
+.match{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mchip{padding:14px 8px;border-radius:12px;border:2px solid var(--line);background:var(--surface);font:inherit;font-weight:700;min-height:56px;width:100%}
+.mchip.sel{border-color:var(--cobalt)}
+.mchip.gone{opacity:.25}
 </style>
-<script>window.__PWA__=1</script>
+
 </head><body>
 <title>Plan de Español 1.1</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -340,22 +359,26 @@ table.list th{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;col
   <p class="sync" id="sync">Saving progress in this browser.</p>
 </header>
 <nav class="tabs"><div class="wrap tabrail" role="tablist" id="tabs">
-  <button class="tab" role="tab" data-tab="today">Today</button>
-  <button class="tab" role="tab" data-tab="sprint">Contrarreloj</button>
-  <button class="tab" role="tab" data-tab="ruta">Ruta</button>
-  <button class="tab" role="tab" data-tab="plan">Plan</button>
-  <button class="tab" role="tab" data-tab="vocab">Vocabulary</button>
-  <button class="tab" role="tab" data-tab="grammar">Grammar</button>
-  <button class="tab" role="tab" data-tab="test">Practice test</button>
-  <button class="tab" role="tab" data-tab="speak">Speaking</button>
-  <button class="tab" role="tab" data-tab="write">Writing</button>
+  <button class="tab" role="tab" data-tab="today" data-i18n="today">Today</button>
+  <button class="tab" role="tab" data-tab="study">Study plan</button>
+  <button class="tab" role="tab" data-tab="sprint" data-i18n="sprint">Contrarreloj</button>
+  <button class="tab" role="tab" data-tab="ruta" data-i18n="ruta">Ruta</button>
+  <button class="tab" role="tab" data-tab="plan" data-i18n="plan">Plan</button>
+  <button class="tab" role="tab" data-tab="vocab" data-i18n="vocab">Vocabulary</button>
+  <button class="tab" role="tab" data-tab="words" data-i18n="words">Words</button>
+  <button class="tab" role="tab" data-tab="grammar" data-i18n="grammar">Grammar</button>
+  <button class="tab" role="tab" data-tab="test" data-i18n="test">Practice test</button>
+  <button class="tab" role="tab" data-tab="speak" data-i18n="speak">Speaking</button>
+  <button class="tab" role="tab" data-tab="write" data-i18n="write">Writing</button>
 </div></nav>
 <main class="wrap">
   <section role="tabpanel" id="p-today"></section>
+  <section role="tabpanel" id="p-study" hidden></section>
   <section role="tabpanel" id="p-sprint" hidden></section>
   <section role="tabpanel" id="p-ruta" hidden></section>
   <section role="tabpanel" id="p-plan" hidden></section>
   <section role="tabpanel" id="p-vocab" hidden></section>
+  <section role="tabpanel" id="p-words" hidden><div style="padding:12px 0"><h2 data-i18n="wordsTitle">Words</h2><p class="muted small" data-i18n="wordsSub">Pick a word list, then choose how you want to practise.</p><div id="wbody" style="display:flex;flex-direction:column;gap:12px"></div></div></section>
   <section role="tabpanel" id="p-grammar" hidden></section>
   <section role="tabpanel" id="p-test" hidden></section>
   <section role="tabpanel" id="p-speak" hidden></section>
@@ -388,7 +411,24 @@ function grade(input,accepted){
   if(!norm(input))return 'wrong';
   if(all.some(a=>norm(a)===norm(input)))return 'ok';
   if(all.some(a=>strip(a)===strip(input)))return 'accent';
+  if(all.some(a=>spellSlip(strip(a),strip(input))))return 'accent';
   return 'wrong';
+}
+const DYS=['bv','bd','bp','dp','pq','cs','cz','sz','ck','cq','gj','nm'];
+function spellSlip(x,y){
+  if(x===y)return false;
+  if(Math.abs(x.length-y.length)===1){
+    const [s,t]=x.length>y.length?[x,y]:[y,x];
+    for(let i=0;i<s.length;i++){if(s[i]!==t[i])return s.slice(0,i)+s.slice(i+1)===t&&(s[i]===s[i-1]||s[i]===s[i+1])}
+    return false;
+  }
+  if(x.length===y.length&&x.length>=4){
+    let i=0;while(i<x.length&&x[i]===y[i])i++;
+    if(i<x.length-1&&x[i]===y[i+1]&&x[i+1]===y[i]&&x.slice(i+2)===y.slice(i+2))return true;
+    const pair=x[i]+y[i];
+    return x.slice(i+1)===y.slice(i+1)&&DYS.some(p=>p===pair||p===pair[1]+pair[0]);
+  }
+  return false;
 }
 const ICON={
   check:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color:var(--surface)"><path d="M3 8.5l3.2 3L13 4.5"/></svg>',
@@ -841,8 +881,10 @@ function cardAccepted(es){const parts=es.split(' / ').map(p=>p.trim());const out
 const PERS=['yo','tú','él / ella / usted','nosotros','vosotros','ellos / ellas / ustedes'];
 const LABELS=[['yo',0],['tú',1],['él',2],['ella',2],['usted',2],['nosotros',3],['nosotras',3],['vosotros',4],['vosotras',4],['ellos',5],['ellas',5],['ustedes',5]];
 const IRR={ser:['soy','eres','es','somos','sois','son'],estar:['estoy','estás','está','estamos','estáis','están'],tener:['tengo','tienes','tiene','tenemos','tenéis','tienen'],hacer:['hago','haces','hace','hacemos','hacéis','hacen'],ir:['voy','vas','va','vamos','vais','van']};
+Object.assign(IRR,{querer:['quiero','quieres','quiere','queremos','queréis','quieren'],poder:['puedo','puedes','puede','podemos','podéis','pueden'],dar:['doy','das','da','damos','dais','dan'],ver:['veo','ves','ve','vemos','veis','ven'],decir:['digo','dices','dice','decimos','decís','dicen']});
 const IRR_NL={ser:'zijn',estar:'zijn (plaats, toestand)',tener:'hebben',hacer:'doen, maken',ir:'gaan'};
 const REG={hablar:'spreken',trabajar:'werken',estudiar:'studeren',viajar:'reizen',comprar:'kopen',tomar:'nemen',necesitar:'nodig hebben',pagar:'betalen',escuchar:'luisteren',bailar:'dansen',cantar:'zingen',llamar:'roepen, bellen',desayunar:'ontbijten',descansar:'rusten',organizar:'organiseren',mirar:'kijken',visitar:'bezoeken',cenar:"'s avonds eten",comer:'eten',beber:'drinken',leer:'lezen',aprender:'leren',vender:'verkopen',correr:'lopen',comprender:'begrijpen',deber:'moeten',vivir:'wonen, leven',escribir:'schrijven',abrir:'openen',recibir:'ontvangen',subir:'stijgen, naar boven gaan',decidir:'beslissen',permitir:'toestaan'};
+Object.assign(IRR_NL,{querer:'willen, houden van',poder:'kunnen',dar:'geven',ver:'zien',decir:'zeggen'});
 const END={ar:['o','as','a','amos','áis','an'],er:['o','es','e','emos','éis','en'],ir:['o','es','e','imos','ís','en']};
 function conj(v,p){if(IRR[v])return IRR[v][p];const t=v.slice(-2),st=v.slice(0,-2);return st+END[t][p]}
 function conjItem(pool){
@@ -1024,10 +1066,12 @@ function go(tab){
   if(tab==='sprint'&&!SPRINT)renderSprint();
   if(tab==='ruta')renderRuta();
   if(tab==='vocab'&&!SESSION)renderVocab();
+  if(tab==='words')renderWords();
   if(tab==='grammar'&&!DRILL)renderGrammar();
   if(tab==='test'&&!TEST)renderTestHome();
   if(tab==='speak'&&!INTERVIEW)renderSpeak();
   if(tab==='write')renderWrite();
+  if(tab==='study')renderStudy();
   window.scrollTo({top:0});
 }
 $('#tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(b)go(b.dataset.tab)});
@@ -1255,15 +1299,15 @@ function showAnswer(){
   else if(s.typed==='wrong')fb='<div class="fb wrong">Not quite</div>';
   $('#ans').innerHTML=`${fb}<span class="lbl">${S.set.dir==='nl'?'Español':'Nederlands'}</span><div class="back">${esc(back)}</div>${sayBtn(c.es)}`;
   const sug=s.typed==='ok'?'good':s.typed==='wrong'?'again':'';
-  $('#act').innerHTML=`<div class="grades"><button class="btn ${sug==='again'?'bad':''}" data-act="grade" data-g="again">Don’t know <span class="kbd">1</span></button><button class="btn" data-act="grade" data-g="hard">Difficult <span class="kbd">2</span></button><button class="btn ${sug==='good'?'good':''}" data-act="grade" data-g="good">I know this <span class="kbd">3</span></button></div>`;
-  if(S.set.dir==='nl')say(c.es);
+  $('#act').innerHTML=`<div class="grades"><button class="btn ${sug==='again'?'bad':''}" data-act="grade" data-g="again">${t('dk')} <span class="kbd">1</span></button><button class="btn" data-act="grade" data-g="hard">${t('hard')} <span class="kbd">2</span></button><button class="btn ${sug==='good'?'good':''}" data-act="grade" data-g="good">${t('know')} <span class="kbd">3</span></button></div>`;
+  if(S.set.dir==='nl'&&S.autoSpeak)say(c.es);
 }
 function gradeCard(g){
   const s=SESSION;const id=s.q[s.i];const t=todayISO();
   const c=S.cards[id]||{b:0,d:t,n:0};
   c.n=(c.n||0)+1;
-  if(g==='again'){c.b=0;c.d=t;if(!s.againSet.has(id)){s.againSet.add(id);s.q.push(id)}}
-  else if(g==='hard'){c.b=Math.max(1,Math.min(c.b,2));c.d=addDays(t,1);s.right+=.5}
+  if(g==='again'){c.b=0;c.d=t;s.againSet.add(id);s.q.push(id)}
+  else if(g==='hard'){c.b=Math.max(1,Math.min(c.b,2));c.d=addDays(t,1);s.right+=.5;s.q.push(id)}
   else{ if(!s.cram||c.d<=t){c.b=Math.min(5,c.b+1);c.d=addDays(t,INT[c.b])} s.right++}
   S.cards[id]=c;save();
   s.combo=g==='good'?(s.combo||0)+1:0;
@@ -1370,7 +1414,7 @@ function drillCheck(){
   if(r==='ok')d.ok++;else if(r==='accent')d.ok+=.5;
   if(r==='ok'){addXP(15);sfx('ok')}else if(r==='accent')addXP(7);else sfx('bad');
   $('#dinput').readOnly=true;
-  const msg={ok:'Correct',accent:'Almost: check the accents (½ point)',wrong:'Not quite'}[r];
+  const msg={ok:'Correct',accent:'Almost: check the spelling (½ point)',wrong:'Not quite'}[r];
   $('#dfb').innerHTML=`<div class="fb ${r}">${msg}</div><p style="margin-top:8px">Answer: <b>${esc(d.cur.acc[0])}</b> ${sayBtn(d.cur.speak||d.cur.acc[0])}</p>${d.cur.why&&d.cur.why!==d.cur.acc[0]?`<p class="small muted">${esc(d.cur.why)}</p>`:''}`;
   $('#dact').innerHTML=`<button class="btn primary" data-act="dnext">Next <span class="kbd">Enter</span></button>${r!=='ok'&&d.cur.lenient?`<button class="btn ghost" data-act="doverride">My answer was also right</button>`:''}`;
 }
@@ -1458,7 +1502,7 @@ function checkTest(){
 function paintTQ(i){
   const x=TEST.items[i];
   $('#q'+i).className='tq '+x.r;
-  const m={ok:'✓ Correct',accent:'½ Check the accent:',wrong:'✗ Answer:'}[x.r];
+  const m={ok:'✓ Correct',accent:'½ Almost, check the spelling:',wrong:'✗ Answer:'}[x.r];
   $('#r'+i).innerHTML=`${m} ${x.r==='ok'?'':`<b>${esc(x.acc[0].replace(/[()]/g,''))}</b>`} ${x.len&&x.r!=='ok'?`<button class="btn sm ghost" data-act="tover" data-i="${i}">Mine was also right</button>`:''}`;
 }
 function footTest(){
@@ -1698,9 +1742,9 @@ function sfx(kind){
   if(!S.sound)return;
   try{
     AC=AC||new (window.AudioContext||window.webkitAudioContext)();
-    const seq={ok:[[660,.07],[880,.1]],bad:[[196,.18]],level:[[523,.11],[659,.11],[784,.11],[1047,.25]],ach:[[784,.09],[1047,.18]],goal:[[587,.1],[880,.2]]}[kind];
+    const seq={ok:[[523.25,.13],[659.25,.13],[783.99,.28]],bad:[[392,.16],[329.63,.28]],level:[[523.25,.16],[587.33,.16],[659.25,.16],[783.99,.16],[1046.5,.45]],ach:[[659.25,.14],[783.99,.14],[987.77,.32]],goal:[[493.88,.16],[587.33,.16],[739.99,.36]]}[kind];
     let t=AC.currentTime;
-    seq.forEach(([f,d])=>{const o=AC.createOscillator(),g=AC.createGain();o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.14,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(AC.destination);o.start(t);o.stop(t+d+.03);t+=d*.9});
+    seq.forEach(([f,d])=>{const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.08,t+.04);g.gain.exponentialRampToValueAtTime(.0001,t+d*1.5);o.connect(g).connect(AC.destination);o.start(t);o.stop(t+d*1.5+.03);t+=d*.95});
   }catch(e){}
 }
 function confetti(n=120){
@@ -1711,7 +1755,21 @@ function confetti(n=120){
   const P=[...Array(n)].map(()=>({x:innerWidth/2+(Math.random()-.5)*140,y:innerHeight*.35,vx:(Math.random()-.5)*13,vy:-Math.random()*13-4,r:Math.random()*7+4,c:pick(cols),a:Math.random()*6}));
   let t=0;(function f(){t++;g.clearRect(0,0,c.width,c.height);P.forEach(p=>{p.vy+=.35;p.x+=p.vx;p.y+=p.vy;p.a+=.2;g.save();g.translate(p.x,p.y);g.rotate(p.a);g.fillStyle=p.c;g.fillRect(-p.r/2,-p.r/4,p.r,p.r/2);g.restore()});if(t<120)requestAnimationFrame(f);else c.remove()})();
 }
+function studyMinutesToday(){return (S.minDay&&S.minDay[todayISO()])||0}
+function trackMinutes(){
+  const now=Date.now();
+  if(S.lastXP){const gap=Math.min((now-S.lastXP)/60000,3);S.minDay=S.minDay||{};S.minDay[todayISO()]=studyMinutesToday()+gap}
+  S.lastXP=now;
+}
+function dimXP(n){
+  if(!n)return 0;
+  trackMinutes();
+  const m=studyMinutesToday(),f=m<=30?1:m<=60?.4:.15;
+  if(m>30&&S.dimDay!==todayISO()){S.dimDay=todayISO();toast('30 minutes today','XP now drops off. Rest and come back tomorrow for full XP.','⏸')}
+  return Math.max(1,Math.round(n*f));
+}
 function addXP(n,label){
+  n=dimXP(n);
   if(!n)return;
   const before=levelOf(S.xp),t=todayISO(),hadGoal=(S.xpDay[t]||0)>=GOAL;
   S.xp=(S.xp||0)+n;S.xpDay[t]=(S.xpDay[t]||0)+n;touchPractice();
@@ -1781,7 +1839,7 @@ function repairHTML(){
 }
 function questsHTML(){
   const done=S.questDay===todayISO();
-  return `<div class="card quests"><h3>Daily quests</h3>${QUESTS.map(q=>{const ok=q[1]();return `<div class="quest${ok?' done':''}"><span>${ok?'✓':'○'}</span>${esc(q[0])}</div>`}).join('')}<p class="small muted">${done?'All done today. ❄ freeze earned.':'Finish all 3 for a streak freeze ❄.'}</p></div>`;
+  return `<div class="card quests"><h3>Daily quests</h3>${QUESTS.map(q=>{const ok=q[1]();return `<div class="quest${ok?' done':''}"><span>${ok?'✓':'○'}</span>${esc(q[0])}</div>`}).join('')}<p class="small muted">Study time today: ${Math.round(studyMinutesToday())} min · ${done?'All done today. ❄ freeze earned.':'Finish all 3 for a streak freeze ❄.'}</p></div>`;
 }
 setInterval(()=>{checkDecay();if(typeof renderHUD==='function')renderHUD()},60000);
 function renderHUD(){
@@ -1823,6 +1881,7 @@ function renderRuta(){
   <div class="achs">${ACH.map(a=>{const on=!!S.ach[a.id];return `<div class="ach${on?' on':''}"><span class="badge">${esc(a.ic)}</span><div><b>${esc(a.t)}</b><span class="small muted">${esc(a.d)}</span></div></div>`}).join('')}</div></div>
   <div class="card stack"><h3>Settings</h3>
    <label class="row" for="snd"><input type="checkbox" id="snd" ${S.sound?'checked':''}> Sound effects</label>
+   <label class="row" for="autosay"><input type="checkbox" id="autosay" ${S.autoSpeak?'checked':''}> Read Spanish words aloud (pauses music)</label>
    <h3>Move your progress to another device</h3>
    <p class="small muted">Progress is stored per device (inside Claude it follows your account). Copy the code here and paste it on your other device.</p>
    <div class="row"><button class="btn" data-act="export">Copy progress code</button></div>
@@ -1830,7 +1889,7 @@ function renderRuta(){
    <div class="row"><button class="btn" data-act="import" id="impbtn">Load this progress</button><span id="xmsg" class="small"></span></div>
   </div>`;
 }
-$('#p-ruta').addEventListener('change',e=>{if(e.target.id==='snd'){S.sound=e.target.checked;save();if(S.sound)sfx('ok')}});
+$('#p-ruta').addEventListener('change',e=>{if(e.target.id==='snd'){S.sound=e.target.checked;save();if(S.sound)sfx('ok')}if(e.target.id==='autosay'){S.autoSpeak=e.target.checked;save()}});
 $('#p-ruta').addEventListener('click',async e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   if(b.dataset.act==='export'){
@@ -1918,11 +1977,281 @@ document.addEventListener('keydown',e=>{if(TAB==='sprint'&&SPRINT&&/^[1-4]$/.tes
 if(window.__PWA__&&'serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}}
 
 function markDone(id){S.done[id]=1;if(!S.taskXP[id]){S.taskXP[id]=1;addXP(20,'Task done')}const d=id.split('#')[0];const [a,b]=dayProg(d);if(b&&a===b&&!S.dayBonus[d]){S.dayBonus[d]=1;addXP(50,'Día completo');confetti(80)}}
+/* ============ language + words ============ */
+const T={
+en:{today:'Today',sprint:'Contrarreloj',ruta:'Ruta',plan:'Plan',vocab:'Vocabulary',words:'Words',grammar:'Grammar',test:'Practice test',speak:'Speaking',write:'Writing',
+ dk:'Don’t know',hard:'Difficult',know:'I know this',wordsTitle:'Words',wordsSub:'Pick a word list, then choose how you want to practise.',list:'Word list',count:'Words',known:'Known',
+ practiceSel:'Practise selected lists',modes:'How do you want to practise?',flash:'Flashcards',quiz:'Quiz',typeHelp:'Typing with help',typeNo:'Typing without help',mix:'Mix (random)',
+ dutchFirst:'Show Dutch first',start:'Start',back:'Back',show:'Show answer',check:'Check',hint:'Hint',done:'Session done',score:'Score',right:'right',next:'Next',correctW:'Correct',answerW:'Answer:',all:'All words',cards:'cards left'},
+nl:{today:'Vandaag',sprint:'Snelheidsronde',ruta:'Route',plan:'Plan',vocab:'Woordenschat',words:'Woorden',grammar:'Grammatica',test:'Oefentoets',speak:'Spreken',write:'Schrijven',
+ dk:'Weet ik niet',hard:'Moeilijk',know:'Ik ken dit',wordsTitle:'Woorden',wordsSub:'Kies een woordenlijst en hoe je wilt oefenen.',list:'Woordenlijst',count:'Woorden',known:'Bekend',
+ practiceSel:'Oefen de gekozen lijsten',modes:'Hoe wil je oefenen?',flash:'Flashkaarten',quiz:'Quiz',typeHelp:'Typen met hulp',typeNo:'Typen zonder hulp',mix:'Mix (willekeurig)',
+ dutchFirst:'Eerst Nederlands tonen',start:'Start',back:'Terug',show:'Toon antwoord',check:'Controleer',hint:'Hint',done:'Klaar!',score:'Score',right:'goed',next:'Volgende',correctW:'Juist',answerW:'Antwoord:',all:'Alle woorden',cards:'kaarten over'}};
+function t(k){return (T[S.lang||'en']||T.en)[k]||T.en[k]||k}
+function applyLang(){
+  $$('[data-i18n]').forEach(b=>{b.textContent=t(b.dataset.i18n)});
+  document.documentElement.lang=S.lang==='nl'?'nl':'en';
+  if(TAB==='today')renderToday();
+  if(TAB==='words')renderWords();
+  if(TAB==='vocab'&&!SESSION)renderVocab();
+}
+function setLang(l){S.lang=l;save();applyLang();renderHUD();if(TAB==='study')renderStudy()}
+const _renderHUD=renderHUD;
+renderHUD=function(){_renderHUD();const h=$('#hud');if(!h)return;const b=document.createElement('button');b.className='pill';b.style.cursor='pointer';b.title='Language / Taal';b.textContent=S.lang==='nl'?'EN':'NL';b.addEventListener('click',()=>setLang(S.lang==='nl'?'en':'nl'));h.appendChild(b)};
+let WSEL=new Set(),WPANEL=null,WMODES={flash:true,quiz:false,typeHelp:false,typeNo:false,mix:false,conj:false},WDIR='nl',WRUN=null;
+function wordSets(){return [{id:'all',title:t('all'),ids:Object.keys(CARDS)},...DECKS.map(d=>({id:d.id,title:d.title,pg:d.pg,ids:d.ids}))]}
+function setStats(ids){const tt=todayISO();const known=ids.filter(id=>S.cards[id]&&S.cards[id].b>=3).length;return {total:ids.length,known}}
+function renderWords(){
+  const body=$('#wbody');if(!body)return;
+  if(WRUN){renderWordRun();return}
+  if(WPANEL){renderWordPanel();return}
+  const rows=wordSets().map(s=>{const st=setStats(s.ids);return `<tr data-wopen="${s.id}" class="wrow2"><td><input type="checkbox" data-sel="${s.id}" ${WSEL.has(s.id)?'checked':''} aria-label="select"></td><td><b>${esc(s.title)}</b>${s.pg?`<div class="small muted">${esc(s.pg)}</div>`:''}</td><td class="mono">${st.total}</td><td class="mono">${st.known}</td></tr>`}).join('');
+  body.innerHTML=`<div class="card stack">
+    <table class="wtable"><thead><tr><th></th><th>${t('list')}</th><th>${t('count')}</th><th>${t('known')}</th></tr></thead><tbody>${rows}</tbody></table>
+    ${WSEL.size?`<button class="btn primary big" data-startsel="1">${t('practiceSel')} (${WSEL.size})</button>`:''}
+  </div>`;
+}
+function renderWordPanel(){
+  const ids=[...WPANEL];const names=wordSets().filter(s=>ids.includes(s.id)).map(s=>s.title).join(' + ');
+  const modes=[['flash',t('flash')],['quiz',t('quiz')],['typeHelp',t('typeHelp')],['typeNo',t('typeNo')],['mix',t('mix')],['conj',S.lang==='nl'?'Verbuiging (vervoegen, alle werkwoorden)':'Conjugation (all verbs)']];
+  $('#wbody').innerHTML=`<div class="card stack">
+    <div class="spread"><b>${esc(names)}</b><button class="btn sm ghost" data-back="1">${t('back')}</button></div>
+    <p class="small muted">${t('modes')}</p>
+    ${modes.map(([k,l])=>`<label class="modeopt"><input type="checkbox" data-mode="${k}" ${WMODES[k]?'checked':''}> ${l}</label>`).join('')}
+    <label class="modeopt"><input type="checkbox" data-dir="1" ${WDIR==='nl'?'checked':''}> ${t('dutchFirst')}</label>
+    <button class="btn primary big" data-go="1">${t('start')}</button>
+    <div class="row"><button class="btn" data-match-start="1">${S.lang==='nl'?'Zoekspel':'Match game'}</button><button class="btn" data-browse="1">${S.lang==='nl'?'Lijst bekijken':'Browse list'}</button></div>
+  </div>`;
+}
+function startWordRun(){
+  const ids=[...new Set([...WPANEL].flatMap(id=>(wordSets().find(s=>s.id===id)||{ids:[]}).ids))];
+  const modes=Object.keys(WMODES).filter(k=>WMODES[k]&&k!=='mix'&&k!=='conj');
+  if(!modes.length&&!WMODES.conj){toast(t('modes'),'',"?");return}
+  let items=ids.map(id=>{const m=WMODES.mix?modes[Math.floor(Math.random()*modes.length)]:null;return {id,mode:m,mixPool:modes}});
+  items=items.flatMap(it=>it.mode?[it]:modes.map(m=>({id:it.id,mode:m,mixPool:modes})).slice(0,1).concat([]));
+  // one entry per card per mode when not mixing
+  if(!WMODES.mix)items=ids.flatMap(id=>modes.map(m=>({id,mode:m})));
+  if(WMODES.conj){Object.keys(REG).concat(Object.keys(IRR)).forEach(v=>{for(let k=0;k<4;k++)items.push({mode:'conj',verb:v,p:Math.floor(Math.random()*6)})})}
+  items=shuffle(items);
+  WRUN={items,i:0,score:0,xp:0,answered:false,tries:0,total:items.length};
+  renderWordRun();
+}
+function drawAnswerText(c){return WDIR==='nl'?c.es:c.nl}
+function promptText(c){return WDIR==='nl'?c.nl:c.es}
+function bumpCard(id,g){
+  const tt=todayISO();const c=S.cards[id]||{b:0,d:tt,n:0};c.n=(c.n||0)+1;
+  if(g==='good'){c.b=Math.min(5,c.b+1);c.d=addDays(tt,INT[c.b])}
+  else if(g==='hard'){c.b=Math.max(1,Math.min(c.b,2));c.d=addDays(tt,1)}
+  else{c.b=0;c.d=tt}
+  S.cards[id]=c;save();
+}
+function renderWordRun(){
+  const r=WRUN,body=$('#wbody');
+  if(r.i>=r.items.length){
+    body.innerHTML=`<div class="card stack" style="text-align:center"><h3>${t('done')}</h3><p class="muted">${t('score')}: ${r.score} / ${r.total} ${t('right')}</p><div class="row" style="justify-content:center"><button class="btn primary" data-back="1">${t('back')}</button></div></div>`;
+    WRUN=null;WPANEL=null;return;
+  }
+  const it=r.items[r.i],c=CARDS[it.id];
+  const head=`<div class="spread small muted"><span>${r.i+1} / ${r.items.length}</span><span>${t('score')}: ${r.score}</span></div>`;
+  if(it.mode==='flash'){
+    body.innerHTML=`<div class="card stack">${head}
+      <h2 style="text-align:center;margin:18px 0">${esc(promptText(c))}</h2>
+      ${r.answered?`<p style="text-align:center;font-size:1.3rem;font-weight:700">${esc(drawAnswerText(c))}</p>
+      <div class="grades"><button class="btn bad" data-g="again">${t('dk')}</button><button class="btn" data-g="hard">${t('hard')}</button><button class="btn primary" data-g="good">${t('know')}</button></div>`
+      :`<button class="btn primary big" data-show="1">${t('show')}</button>`}
+    </div>`;
+  }else if(it.mode==='quiz'){
+    if(!it.opts){const pool=wordPool('all');const others=shuffle(pool.filter(x=>x.id!==c.id)).slice(0,3).map(x=>drawAnswerText(x));it.opts=shuffle([drawAnswerText(c),...others])}
+    body.innerHTML=`<div class="card stack">${head}<h3 style="margin:6px 0">${esc(promptText(c))}</h3>
+      ${it.opts.map((o,k)=>`<button class="opt ${r.answered?(o===drawAnswerText(c)?'ok':(it.picked===k?'bad':'')):''}" data-opt="${k}" ${r.answered?'disabled':''}>${esc(o)}</button>`).join('')}
+      ${r.answered?`<button class="btn primary" data-next="1">${t('next')}</button>`:''}</div>`;
+  }else if(it.mode==='conj'){
+    const ans=conj(it.verb,it.p),hint=it.hints||0;
+    body.innerHTML=`<div class="card stack">${head}<h3 style="margin:6px 0">${esc(PERS[it.p])} · <span style="color:var(--cobalt)">${esc(it.verb.toUpperCase())}</span></h3><p class="small muted">${esc(it.verb)} = ${esc(REG[it.verb]||IRR_NL[it.verb]||'')}</p>
+      ${r.answered?`<p class="small">${r.lastRes==='ok'?'✓ '+t('correctW'):r.lastRes==='accent'?'½ '+t('correctW'):'✗ '+t('answerW')+' '+esc(ans)}</p><button class="btn primary" data-next="1">${t('next')}</button>`
+      :`<input id="wtype" autocomplete="off" autocapitalize="off" style="width:100%;padding:12px;border-radius:12px;font:inherit;font-size:1.1rem" placeholder="${hint?esc(ans.slice(0,hint))+'…':''}">
+        <div class="row"><button class="btn sm ghost" data-hint="1">${t('hint')}</button><button class="btn primary" data-check="1">${t('check')}</button></div>`}
+    </div>`;
+    setTimeout(()=>{const i=$('#wtype');if(i)i.focus()},50);
+  }else{
+    const help=it.mode==='typeHelp';
+    const hint=it.hints||0;
+    const masked=help&&hint?esc(drawAnswerText(c).slice(0,hint))+'…':'';
+    body.innerHTML=`<div class="card stack">${head}<h3 style="margin:6px 0">${esc(promptText(c))}</h3>
+      ${r.answered?`<p class="small">${r.lastRes==='ok'?'✓ '+t('correctW'):r.lastRes==='accent'?'½ '+t('correctW'):'✗ '+t('answerW')+' '+esc(drawAnswerText(c))}</p><button class="btn primary" data-next="1">${t('next')}</button>`
+      :`<input id="wtype" autocomplete="off" autocapitalize="off" style="width:100%;padding:12px;border-radius:12px;font:inherit;font-size:1.1rem" placeholder="${masked||''}">
+        <div class="row">${help?`<button class="btn sm ghost" data-hint="1">${t('hint')}</button>`:''}<button class="btn primary" data-check="1">${t('check')}</button></div>`}
+    </div>`;
+    setTimeout(()=>{const i=$('#wtype');if(i)i.focus()},50);
+  }
+}
+function wordAnswer(res){
+  const r=WRUN;const it=r.items[r.i];r.answered=true;r.lastRes=res;
+  const c=CARDS[it.id];
+  if(res==='ok'){r.score++;addXP(it.mode==='typeHelp'?3:4,'Words')}
+  else if(res==='accent'){r.score+=.5;addXP(2,'Words')}
+  if(it.mode!=='flash')bumpCard(it.id,res==='wrong'?'again':'good');
+  if(it.mode==='typeHelp'&&res==='wrong'&&(it.tries||0)<1){it.tries=(it.tries||0)+1;r.items.splice(r.i+3,0,{...it,hints:0})}
+  renderWordRun();
+}
+function wordFlash(g){
+  const r=WRUN,it=r.items[r.i],c=CARDS[it.id];
+  bumpCard(it.id,g);
+  if(g==='good'){r.score++;addXP(4,'Words')}
+  if(g==='again'||g==='hard')r.items.push({...it});
+  r.answered=false;r.i++;renderWordRun();
+}
+function renderWordRunHelp(){} 
+$('#p-words').addEventListener('click',e=>{
+  const mp=e.target.closest('[data-mpick]');if(mp){mPick(mp.dataset.mpick);return}
+  if(e.target.closest('[data-match-start]')){mStart(WPANEL?[...WPANEL]:['all']);return}
+  if(e.target.closest('[data-match-again]')){mStart(MATCH.src);return}
+  if(e.target.closest('[data-browse]')){bOpen([...WPANEL]);return}
+  const sy=e.target.closest('[data-say]');if(sy){say(sy.dataset.say);return}
+  const sel=e.target.closest('[data-sel]');
+  if(sel){if(sel.checked)WSEL.add(sel.dataset.sel);else WSEL.delete(sel.dataset.sel);renderWords();return}
+  const row=e.target.closest('[data-wopen]');
+  if(row){WPANEL=new Set([row.dataset.wopen]);renderWords();return}
+  const ss=e.target.closest('[data-startsel]');
+  if(ss){WPANEL=new Set(WSEL);renderWords();return}
+  if(e.target.closest('[data-back]')){WRUN=null;WPANEL=null;renderWords();return}
+  if(e.target.closest('[data-go]')){startWordRun();return}
+  const sh=e.target.closest('[data-show]');
+  if(sh){WRUN.answered=true;renderWordRun();return}
+  const g=e.target.closest('[data-g]');
+  if(g){wordFlash(g.dataset.g);return}
+  const op=e.target.closest('[data-opt]');
+  if(op){const r=WRUN,it=r.items[r.i],c=CARDS[it.id];const k=+op.dataset.opt;it.picked=k;const ok=it.opts[k]===drawAnswerText(c);r.answered=true;if(ok){r.score++;addXP(3,'Words');if(S.autoSpeak)say(c.es)}bumpCard(it.id,ok?'good':'again');renderWordRun();return}
+  if(e.target.closest('[data-next]')){WRUN.i++;WRUN.answered=false;renderWordRun();return}
+  if(e.target.closest('[data-hint]')){const it=WRUN.items[WRUN.i];it.hints=(it.hints||0)+1;renderWordRun();setTimeout(()=>{const i=$('#wtype');if(i)i.value=''},0);return}
+  if(e.target.closest('[data-check]')){checkWordTyping();return}
+});
+function conjAnswer(res){
+  const r=WRUN,it=r.items[r.i];r.answered=true;r.lastRes=res;
+  if(res==='ok'){r.score++;addXP(3,'Verbuiging')}
+  else if(res==='accent'){r.score+=.5;addXP(2,'Verbuiging')}
+  else if(!it.retry){it.retry=1;r.items.splice(r.i+3,0,{...it,hints:0,retry:1})}
+  renderWordRun();
+}
+function checkWordTyping(){
+  const r=WRUN;if(!r)return;const it=r.items[r.i];
+  if(it.mode==='conj'){const v=($('#wtype')||{value:''}).value;const res=grade(v,[conj(it.verb,it.p)]);return conjAnswer(res==='ok'?'ok':res==='accent'?'accent':'wrong')}
+  const c=CARDS[it.id];
+  const v=($('#wtype')||{value:''}).value;
+  const res=grade(v,[drawAnswerText(c)]);
+  wordAnswer(res==='ok'?'ok':res==='accent'?'accent':'wrong');
+}
+$('#p-words').addEventListener('change',e=>{
+  if(e.target.dataset.mode){WMODES[e.target.dataset.mode]=e.target.checked;if(e.target.dataset.mode==='mix'&&e.target.checked){}}
+  if(e.target.dataset.dir){WDIR=e.target.checked?'nl':'es'}
+});
+$('#p-words').addEventListener('input',e=>{if(e.target.id==='bsearch'){const v=e.target.value.trim().toLowerCase();$('#blist').innerHTML=bRows(BCARDS.filter(c=>!v||c.es.toLowerCase().includes(v)||c.nl.toLowerCase().includes(v)))}});
+$('#p-words').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='wtype'){e.preventDefault();if(WRUN&&WRUN.answered){WRUN.i++;WRUN.answered=false;renderWordRun()}else checkWordTyping()}});
+function wordPool(id){return (wordSets().find(s=>s.id===id)||{ids:[]}).ids.map(i=>CARDS[i])}
+
+/* ---- match game and browse list (kept from the earlier Words tab) ---- */
+let MATCH=null,MTIMER=null,BCARDS=[];
+function setCards(ids){return [...new Set(ids.flatMap(id=>(wordSets().find(s=>s.id===id)||{ids:[]}).ids))]}
+function mStart(ids){
+  const all=setCards(ids);
+  if(all.length<2){toast(S.lang==='nl'?'Geen woorden':'No words','','?');return}
+  const pick=shuffle(all).slice(0,6);
+  MATCH={src:ids,ids:pick,L:shuffle(pick),R:shuffle(pick),picked:null,done:new Set(),misses:0,start:Date.now()};
+  mDraw();clearInterval(MTIMER);
+  MTIMER=setInterval(()=>{const el=$('#mclock');if(el&&MATCH&&!MATCH.fin)el.textContent=Math.floor((Date.now()-MATCH.start)/1000)+'s'},1000);
+}
+function mDraw(){
+  const m=MATCH;
+  $('#wbody').innerHTML=`<div class="card stack">
+    <div class="spread"><b>${S.lang==='nl'?'Zoekspel':'Match the pairs'}</b><span class="mono small" id="mclock">0s</span></div>
+    <div class="match">
+      <div style="display:flex;flex-direction:column;gap:8px">${m.L.map(id=>`<button class="mchip${m.done.has(id)?' gone':''}${m.picked&&m.picked.s==='L'&&m.picked.id===id?' sel':''}" data-mpick="L:${id}" ${m.done.has(id)?'disabled':''}>${esc(CARDS[id].es)}</button>`).join('')}</div>
+      <div style="display:flex;flex-direction:column;gap:8px">${m.R.map(id=>`<button class="mchip${m.done.has(id)?' gone':''}${m.picked&&m.picked.s==='R'&&m.picked.id===id?' sel':''}" data-mpick="R:${id}" ${m.done.has(id)?'disabled':''}>${esc(CARDS[id].nl)}</button>`).join('')}</div>
+    </div>
+    <div class="row"><button class="btn sm ghost" data-back="1">${t('back')}</button></div>
+  </div>`;
+}
+function mPick(raw){
+  const m=MATCH;if(!m||m.fin)return;
+  const ci=raw.indexOf(':'),s=raw.slice(0,ci),id=raw.slice(ci+1);
+  if(m.done.has(id))return;
+  if(!m.picked||m.picked.s===s){m.picked={s,id};mDraw();return}
+  if(m.picked.id===id){m.done.add(id);m.picked=null;if(S.autoSpeak)say(CARDS[id].es);addXP(3,'Match');if(m.done.size===m.ids.length){mFinish();return}}
+  else{m.misses++;m.picked=null;toast(S.lang==='nl'?'Geen paar':'Not a pair','','✗')}
+  mDraw();
+}
+function mFinish(){
+  const m=MATCH;m.fin=true;clearInterval(MTIMER);
+  const secs=Math.round((Date.now()-m.start)/1000);
+  $('#wbody').innerHTML=`<div class="card stack" style="text-align:center"><h3>${secs}s</h3><p class="muted">${m.misses} ${S.lang==='nl'?'fout(en)':'miss(es)'}</p><div class="row" style="justify-content:center"><button class="btn primary" data-match-again="1">${S.lang==='nl'?'Nog een ronde':'Another round'}</button><button class="btn ghost" data-back="1">${t('back')}</button></div></div>`;
+}
+function wordKnown(id){const c=S.cards[id];return !!(c&&c.b>=3)}
+function bRows(cards){return cards.map(c=>`<div class="wrow"><span class="dot ${wordKnown(c.id)?'full':''}"></span><span class="wes">${esc(c.es)}</span><span class="wnl">${esc(c.nl)}</span><button class="btn sm ghost" data-say="${esc(c.es)}">🔊</button></div>`).join('')||'<p class="muted">—</p>'}
+function bOpen(ids){
+  BCARDS=setCards(ids).map(i=>CARDS[i]);
+  $('#wbody').innerHTML=`<div class="card stack">
+    <div class="spread"><b>${S.lang==='nl'?'Woordenlijst':'Word list'}</b><button class="btn sm ghost" data-back="1">${t('back')}</button></div>
+    <input id="bsearch" placeholder="${S.lang==='nl'?'Zoek in Spaans of Nederlands':'Search Spanish or Dutch'}" style="width:100%;padding:10px;border-radius:10px;font:inherit">
+    <div id="blist">${bRows(BCARDS)}</div></div>`;
+}
+
+
+/* ============ study plan (Sun 22/11 + Mon 23/11) ============ */
+const STUDY=[
+ {id:'sun',title:{en:'Sunday 22/11 · today',nl:'Zondag 22/11 · vandaag'},items:[
+  {id:'s1',en:'Sí, claro vocabulary unit 1 + 2 — flashcards until every card is "I know this"',nl:'Sí, claro woordenschat unit 1 + 2 — flashcards tot alles "Ik ken dit" is',ref:'Sí claro p.196–210 · Te kennen leerstof',goto:'words'},
+  {id:'s2',en:'Both word lists (Excel): run the match and typing games',nl:'Beide woordenlijsten (Excel): match- en typ-oefening',ref:'woorden.xlsx · belangrijke woorden.xlsx',goto:'words'},
+  {id:'s3',en:'Regular verbs -AR / -ER / -IR, present tense',nl:'Regelmatige werkwoorden -AR / -ER / -IR, tegenwoordige tijd',ref:'curso p.4 · Herhaling A',goto:'grammar'},
+  {id:'s4',en:'Irregular verbs: ser, estar, tener, hacer, ir',nl:'Onregelmatige werkwoorden: ser, estar, tener, hacer, ir',ref:'curso p.6',goto:'grammar'},
+  {id:'s5',en:'Irregular verbs: querer, poder, dar, ver, decir (+ tener que)',nl:'Onregelmatige werkwoorden: querer, poder, dar, ver, decir (+ tener que)',ref:'curso p.6',goto:'grammar'},
+  {id:'s6',en:'Herhalingsoefeningen part A: conjugate all gaps (yo, tú, usted, él, nosotros, ellos)',nl:'Herhalingsoefeningen deel A: vervoeg alle gaten (yo, tú, usted, él, nosotros, ellos)',ref:'Test jezelf · A /30',goto:'grammar'},
+  {id:'s7',en:'Herhalingsoefeningen B (plural) and C (negative sentences)',nl:'Herhalingsoefeningen B (meervoud) en C (negatieve zinnen)',ref:'Test jezelf · B /5 · C /5',goto:'grammar'},
+  {id:'s8',en:'Grammar theory: articles, negation, personal pronouns, plurals, question words, para + infinitive',nl:'Grammatica: lidwoorden, ontkenning, persoonlijke voornaamwoorden, meervoud, vraagwoorden, para + infinitief',ref:'curso p.5, 17–20, 22, 44 · Sí claro p.25, 28',goto:'grammar'},
+  {id:'s9',en:'Speaking: read these aloud, no help — p.167, p.14, p.168, p.20, p.24, p.27',nl:'Spreken: lees hardop, zonder hulp — p.167, p.14, p.168, p.20, p.24, p.27',ref:'Te kennen leerstof · A',goto:'speak'},
+  {id:'s10',en:'Speaking: answer the personal questions in full sentences (name, where from, where you live, how you are, phone, email, spell your name)',nl:'Spreken: beantwoord de persoonlijke vragen in volledige zinnen (naam, herkomst, woonplaats, hoe gaat het, telefoon, e-mail, naam spellen)',ref:'Te kennen leerstof · B',goto:'speak'},
+  {id:'s11',en:'Writing: email to Eduardo — at least 30 words, 3 words from the list, cover the 4 points (introduce yourself, languages, why you study Spanish)',nl:'Schrijven: e-mail aan Eduardo — minstens 30 woorden, 3 woorden uit de lijst, de 4 punten (jezelf voorstellen, talen, waarom je Spaans studeert)',ref:'Schrijftaak',goto:'write'},
+  {id:'s12',en:'Writing: self-introduction in 5 sentences (name, woonplaats, geboorteplaats, job or study, work or school)',nl:'Schrijven: zelfvoorstelling in 5 zinnen (naam, woonplaats, geboorteplaats, beroep of studie, werk of school)',ref:'Schrijftaak · Te kennen leerstof',goto:'write'},
+  {id:'s13',en:'Practice test: do the test once, note every mistake',nl:'Oefentoets: maak de toets één keer, noteer elke fout',ref:'Test jezelf /50',goto:'test'}
+ ]},
+ {id:'mon',title:{en:'Monday 23/11 · exam',nl:'Maandag 23/11 · toets'},items:[
+  {id:'m1',en:'Warm-up: 15 minutes of flashcards on the words you missed',nl:'Opwarmen: 15 minuten flashcards op de woorden die je miste',ref:'Words',goto:'words'},
+  {id:'m2',en:'Timed practice test (30 min)',nl:'Oefentoets op tijd (30 min)',ref:'Practice test',goto:'test'},
+  {id:'m3',en:'Redo the grammar items you got wrong yesterday',nl:'Maak de grammaticaoefeningen die je gisteren fout had opnieuw',ref:'Grammar',goto:'grammar'},
+  {id:'m4',en:'Speaking: read 2 texts aloud and answer 5 personal questions out loud',nl:'Spreken: lees 2 teksten hardop en beantwoord 5 persoonlijke vragen hardop',ref:'Speaking',goto:'speak'},
+  {id:'m5',en:'Writing: check the email (30+ words, 3 list words, 4 points) and the self-introduction once more',nl:'Schrijven: controleer de e-mail (30+ woorden, 3 lijstwoorden, 4 punten) en de zelfvoorstelling nog eens',ref:'Writing',goto:'write'},
+  {id:'m6',en:'Check the exam date and time with the teacher or ELO (ELO says 23/11, the planning screenshot says 17/11)',nl:'Controleer de datum en het uur bij de leerkracht of op ELO (ELO zegt 23/11, het planningsscreenshot zegt 17/11)',ref:'Planning'},
+  {id:'m7',en:'Stop studying about an hour before the exam and get some sleep',nl:'Stop ongeveer een uur voor de toets met studeren en slaap wat',ref:''}
+ ]}
+];
+const studyDone=id=>!!S.flags['study:'+id];
+function renderStudy(){
+  const sec=$('#p-study');if(!sec)return;
+  const L=S.lang==='nl'?'nl':'en';
+  const all=STUDY.flatMap(d=>d.items),k=all.filter(i=>studyDone(i.id)).length;
+  sec.innerHTML=`<div style="padding:12px 0;display:flex;flex-direction:column;gap:12px">
+    <h2>${L==='nl'?'Studieplan':'Study plan'}</h2>
+    <p class="muted small">${L==='nl'?'Vink af wat je klaar hebt. Alles staat in je boek, de Excel-lijsten of de Word-bestanden.':'Tick off what you finish. Everything comes from your book, the Excel word lists or the Word files.'}</p>
+    <div class="card"><div class="spread"><b>${L==='nl'?'Totaal':'Total'}</b><span class="pill">${k}/${all.length}</span></div></div>
+    ${STUDY.map(d=>{const n=d.items.length,c=d.items.filter(i=>studyDone(i.id)).length;return `<div class="card">
+      <div class="spread" style="margin-bottom:6px"><b>${d.title[L]}</b><span class="pill">${c}/${n}</span></div>
+      ${d.items.map(i=>`<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line)">
+        <input type="checkbox" data-study="${i.id}" ${studyDone(i.id)?'checked':''} style="margin-top:4px;width:18px;height:18px;flex:0 0 auto" aria-label="${esc(i[L])}">
+        <div style="flex:1;min-width:0"><div>${esc(i[L])}</div>${i.ref?`<small class="muted">${esc(i.ref)}</small>`:''}</div>
+        ${i.goto?`<button class="btn sm ghost" data-goto="${i.goto}">${L==='nl'?'Open':'Open'}</button>`:''}
+      </div>`).join('')}
+    </div>`}).join('')}
+  </div>`;
+}
+document.addEventListener('change',e=>{const c=e.target.closest('[data-study]');if(!c)return;S.flags['study:'+c.dataset.study]=c.checked?1:0;save();renderStudy()});
+
 /* ============ boot ============ */
 function renderAll(){renderCountdown();renderHUD();go(TAB)}
 try{const t=localStorage.getItem(KEY+':tab');if(t&&document.getElementById('p-'+t))TAB=t}catch(e){}
 checkAch(true);
 renderAll();
+applyLang();
 </script>
+
+</body></html>
 
 </body></html>
